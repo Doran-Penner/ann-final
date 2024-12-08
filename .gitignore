@@ -9,3 +9,4 @@ env.bak/
 venv.bak/
 .direnv
 data/
+logs/
