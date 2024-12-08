@@ -20,7 +20,7 @@ stock_dir = data_root_path.joinpath("stocks")
 all_data_strs = [str(x) for x in stock_dir.iterdir() if x.stem in tickers]
 
 # randomly split into train/valid/test with 75/15/10 ratio
-rng_seed = 12345
+rng_seed = None
 rng = np.random.default_rng(seed=rng_seed)
 rng.shuffle(all_data_strs)  # obs: in-place modification!
 train_valid_split = int(np.floor(len(all_data_strs) * 0.75))
@@ -41,7 +41,7 @@ def make_vae_dataloader(data_strs, seed=None):
         tf.data.experimental.make_csv_dataset(
             file_pattern=data_strs,
             batch_size=128,
-            column_defaults=["float32" for _ in range(6)],
+            column_defaults=["float64" for _ in range(6)],
             num_epochs=1,
             shuffle=True,
             shuffle_seed=seed,
