@@ -7,6 +7,10 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 # from google.colab import drive
 import os
+import datetime
+
+curr_datetime = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+os.mkdir(f"plots/{curr_datetime}")
 
 #mount google drive
 # drive.mount('/content/drive')
@@ -19,18 +23,15 @@ class Log1p(keras.layers.Layer):
         return keras.ops.log1p(inputs)
 
 class Sampling(keras.layers.Layer):
-    def __init__(self, latent_dims, samples=1, seed=None, **kwargs):
+    def __init__(self, samples=1, seed=None, **kwargs):
         super().__init__(**kwargs)
         self.seed_generator = keras.random.SeedGenerator(seed=seed)
         self.samples = samples
-        self.latent_dims = latent_dims
     def call(self, inputs):
-        # @tag I can't figure out how to break up the inputs
-        z_mean, z_log_var = inputs[..., :, 0, :], inputs[..., :, 1, :]
-        breakpoint()
+        z_mean, z_log_var = inputs[:, 0], inputs[:, 1]
         batch = keras.ops.shape(z_mean)[0]
-        dim = keras.ops.shape(z_mean)[1]
-        samples = keras.random.normal(shape=(self.samples, batch, dim), seed=self.seed_generator)
+        dim = keras.ops.shape(z_mean)[1:]
+        samples = keras.random.normal(shape=(self.samples, batch, *dim), seed=self.seed_generator)
         epsilon = keras.ops.average(samples, axis=0)
         return z_mean + keras.ops.exp(0.5 * z_log_var) * epsilon
 
@@ -58,9 +59,8 @@ def preprocess_data(file_path, time_steps=50):
     def create_sequences(data, time_steps):
         sequences, labels = [], []
         for i in range(len(data) - time_steps):
-            # @tag I can't figure out how to properly combine the mean and log_var
             mean, log_var = encoder(data[i:i+time_steps])
-            sequences.append(np.stack([mean, log_var], axis=1))
+            sequences.append([mean, log_var])
             labels.append(data[i+time_steps, 0])
         return np.array(sequences), np.array(labels)
 
@@ -121,4 +121,4 @@ for ticker in stock_tickers:
     plt.xlabel("Time Steps")
     plt.ylabel("Price")
     plt.legend()
-    plt.show()
+    plt.savefig(f"plots/{curr_datetime}/{ticker}.png")
